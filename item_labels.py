@@ -20,7 +20,7 @@ specs = labels.Specification(215.9, 279.4, 3, 10, 66.8, 25.4, corner_radius=2,
                              left_margin=4.8, column_gap=3, top_margin=12.7, row_gap=0)
 
 
-# Get the path to the demos directory.
+# Get the path to the current directory.
 base_path = os.path.dirname(sys.argv[0])
 os.chdir(base_path)
 
