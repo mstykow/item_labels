@@ -3,13 +3,13 @@
 
 # Install these modules before first time running script.
 import labels, openpyxl
-from openpyxl.cell import get_column_letter, column_index_from_string
+from openpyxl.utils import get_column_letter, column_index_from_string
 from reportlab.graphics import shapes
 from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase.pdfmetrics import registerFont, stringWidth
 
 # Python standard modules.
-import os, warnings, re, math
+import sys, os, warnings, re, math
 warnings.simplefilter("ignore")
 
 # Letter size sheet (215.9mm x 279.4mm) with Avery 5160 labels.
@@ -21,7 +21,8 @@ specs = labels.Specification(215.9, 279.4, 3, 10, 66.8, 25.4, corner_radius=2,
 
 
 # Get the path to the demos directory.
-base_path = os.path.dirname(__file__)
+base_path = os.path.dirname(sys.argv[0])
+os.chdir(base_path)
 
 # Add some fonts.
 registerFont(TTFont('Calibri', os.path.join(base_path, 'calibri.ttf')))
@@ -50,7 +51,7 @@ def make_import_sheet(workbook, name, fieldList):
 # Finds the first row containing data in column 'B' of a sheet.
 def find_data(sheet):
     startRow = 1
-    for cell in sheet.columns[1]:
+    for cell in list(sheet.columns)[1]:
         if cell.value == None:
             startRow += 1
         else:
@@ -60,7 +61,7 @@ def find_data(sheet):
 # Finds columns corresponding to each cell in a list and returns assignment as a dictionary.
 def find_columns(listOfCells, sheet):
     dictionary = {}
-    for cell in sheet.rows[startRow - 1]:
+    for cell in list(sheet.rows)[startRow - 1]:
         if cell.value in listOfCells:
             dictionary[cell.value] = cell.column
         else:
@@ -76,7 +77,7 @@ def source_to_target(sheet1, start, end, sheet2, sourceDict, targetDict):
 
 # Writes a value into column B depending on a regex found in a cell in column A.
 def cert_status(sheet, A, B, dictionary):
-    for memo in sheet.columns[column_index_from_string(A) - 1][1:]:
+    for memo in list(sheet.columns)[column_index_from_string(A) - 1][1:]:
         mo = memoRegex.search(str(memo.value))
         if mo:
             sheet[B + str(memo.row)].value = dictionary.get(mo.group(), None)
@@ -103,21 +104,33 @@ def write_name(label, width, height, row):
 # Given two numbers, this function creates a tuple of tuples.
 def numpair_tuples(top, bottom):
     numList = []
-    for i in range(1, math.ceil(top/3)):
-        for j in range(1, 4):
-            numList.append((i, j))
-    for k in range(1, top % 3 + 1):
-        numList.append((math.ceil(top/3), k))
-    for l in range(10, 10 - math.floor(bottom/3), -1):
-        for m in range(1, 4):
-            numList.append((l, m))
-    for n in range(3, 3 - bottom % 3, -1):
-        numList.append((10 - math.floor(bottom/3), n))
+    topRows = math.ceil(top/3)
+    bottomRows = math.floor(bottom/3)
+    if top % 3 == 0:
+        for i in range(1, topRows + 1):
+            for j in range(1, 4):
+               numList.append((i, j))
+    else:
+        for i in range(1, topRows):
+            for j in range(1, 4):
+                numList.append((i, j))
+        for k in range(1, top % 3 + 1):
+            numList.append((topRows, k))
+    if bottom % 3 == 0:
+        for i in range(10, 10 - bottomRows, -1):
+            for j in range (1, 4):
+                numList.append((i, j))
+    else:
+        for i in range(10, 10 - bottomRows, -1):
+            for j in range (1, 4):
+                numList.append((i, j))
+        for k in range(3, 3 - bottom % 3, -1):
+            numList.append((10 - bottomRows, k))
     return tuple(numList)
 
 # Creates labels in pdfSheet row by row from xlsSheet if key column is non-empty.
 def create_labels(xlsSheet, pdfSheet, column):
-    for rowOfCells in xlsSheet.rows[1:]:
+    for rowOfCells in list(xlsSheet.rows)[1:]:
         if rowOfCells[column_index_from_string(column)].value:
             pdfSheet.add_label(rowOfCells)
         else:
